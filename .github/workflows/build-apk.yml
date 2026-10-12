@@ -1,0 +1,71 @@
+name: Build Android APK (Local)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
+  pull_request:
+    branches: [main]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+# Cancel a build still running on this branch/PR when a newer commit lands.
+concurrency:
+  group: local-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java (Gradle needs JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # Generates android/ from app.json (android/ is gitignored, so always --clean on CI).
+      - name: Expo prebuild
+        run: npx expo prebuild --platform android --clean --non-interactive
+
+      # Debug APK is unsigned but installable — the equivalent of the old
+      # EAS `preview` (internal distribution) profile, with no signing setup.
+      # For a signed release APK, add keystore secrets and switch this to
+      # `assembleRelease` (see commented env vars below).
+      - name: Build debug APK with Gradle
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        #  If/when you want a signed release build, create these repo secrets
+        #  (base64-encoded keystore + credentials) and swap in assembleRelease:
+        # env:
+        #   ORG_GRADLE_PROJECT_releaseKeystore: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        #   ORG_GRADLE_PROJECT_releaseKeystorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        #   ORG_GRADLE_PROJECT_releaseKeyAlias: ${{ secrets.ANDROID_KEY_ALIAS }}
+        #   ORG_GRADLE_PROJECT_releaseKeyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Rename APK with commit SHA
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ./tangent-${{ github.sha }}.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ./tangent-${{ github.sha }}.apk
+          if-no-files-found: error

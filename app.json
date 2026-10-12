@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "tangent",
+    "slug": "tangent",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "tangent",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tangent.app"
+    },
+    "android": {
+      "package": "com.tangent.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
