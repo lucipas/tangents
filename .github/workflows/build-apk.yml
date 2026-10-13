@@ -49,11 +49,14 @@ jobs:
 
       # Debug APK is unsigned but installable — the equivalent of the old
       # EAS `preview` (internal distribution) profile, with no signing setup.
+      # bundleInDebug=true embeds index.android.bundle in the APK so it runs
+      # standalone without a Metro dev server. Without it, the app shows the
+      # "Unable to load script" redbox on launch.
       # For a signed release APK, add keystore secrets and switch this to
       # `assembleRelease` (see commented env vars below).
       - name: Build debug APK with Gradle
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug -PbundleInDebug=true --stacktrace --no-daemon
         #  If/when you want a signed release build, create these repo secrets
         #  (base64-encoded keystore + credentials) and swap in assembleRelease:
         # env:
